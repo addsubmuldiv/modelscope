@@ -15,6 +15,19 @@ ms-swift Ascend 镜像面向华为昇腾 Atlas NPU，提供可直接使用的 ms
 - Ascend runtime 环境来自 `/usr/local/Ascend/ascend-toolkit/set_env.sh`
 - 如果镜像内存在 NNAL/ATB，则会加载 `/usr/local/Ascend/nnal/atb/set_env.sh`
 
+## CANN 9.2 验证配方
+
+[`Dockerfile.cann920`](Dockerfile.cann920) 记录了 ARM64 冒烟验证所用的 CANN 9.2 / 910B / Ubuntu 22.04 / Python 3.12 构建配方，固定了基础镜像 digest、八个源码 commit 和训练共用依赖。其他 PyPI 辅助包仍按配方中的安装命令选择版本。
+
+```bash
+docker build --network host -t ms-swift:cann9.2-smoke \
+  -f docker/ascend/Dockerfile.cann920 .
+```
+
+实测镜像使用本地 Qwen3-0.6B，在单卡普通 LoRA SFT、TP=2 全参数 Megatron SFT、双卡全参数 FSDP2 GRPO、TP=2 全参数 Megatron GRPO 四条路径中，均完成了四个优化步骤和 checkpoint 保存。RL 使用本地 GSM8K 提示和诊断奖励；这些短程结果不能证明任务准确率或长期稳定性。额外的 Megatron TP=2 LoRA 测试在 TENPU 线性层报 `GEMM not possible`。
+
+`pip check` 仍报告 FLA/Transformers、vLLM/OpenCV 的依赖要求冲突，以及 `ms-service-profiler`、`ms-agent` 的可选依赖缺失。所选 ms-swift 版本检查和短训练通过，不代表全部模型或可选特性均兼容。便携配方将实测镜像中的本地源码复制替换为同一 commit 的 Git checkout；该 checkout 版本尚未重新执行完整镜像构建。
+
 ## 镜像内容
 
 Ascend Dockerfile 会安装和配置：

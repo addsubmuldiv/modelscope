@@ -15,6 +15,19 @@ ms-swift Ascend images provide a ready-to-use ms-swift environment for Huawei As
 - Ascend runtime environment is sourced from `/usr/local/Ascend/ascend-toolkit/set_env.sh`
 - If available, NNAL/ATB runtime is sourced from `/usr/local/Ascend/nnal/atb/set_env.sh`
 
+## CANN 9.2 Smoke Recipe
+
+[`Dockerfile.cann920`](Dockerfile.cann920) records the CANN 9.2 / 910B / Ubuntu 22.04 / Python 3.12 build used for the ARM64 smoke tests. It pins the base-image digest, eight source commits, and the shared training dependencies. Auxiliary PyPI packages still follow the install commands in the recipe.
+
+```bash
+docker build --network host -t ms-swift:cann9.2-smoke \
+  -f docker/ascend/Dockerfile.cann920 .
+```
+
+The tested image completed four optimizer steps and checkpoint saving with a local Qwen3-0.6B model: ordinary SFT with LoRA on one NPU, full-parameter Megatron SFT with TP=2, full-parameter FSDP2 GRPO on two NPUs, and full-parameter Megatron GRPO with TP=2. RL used local GSM8K prompts and a diagnostic reward; these runs do not establish task accuracy or long-run stability. The separate Megatron TP=2 LoRA test failed with `GEMM not possible` in a TENPU linear layer.
+
+`pip check` still reports incompatible FLA/Transformers and vLLM/OpenCV requirements, plus missing optional dependencies of `ms-service-profiler` and `ms-agent`. Passing the selected ms-swift version checks and short training runs does not establish compatibility for every model or optional feature. The portable recipe replaces the tested image's local source copies with Git checkouts at the same commits; that checkout-based recipe has not been rebuilt end to end.
+
 ## Image Contents
 
 The Ascend Dockerfile installs and configures:
